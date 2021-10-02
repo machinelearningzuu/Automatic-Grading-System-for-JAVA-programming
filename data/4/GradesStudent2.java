@@ -1,0 +1,38 @@
+package question.four;
+
+import java.util.Scanner;
+
+public class Grades {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		
+		String name;
+		int avg;
+		String grade;
+		
+		Scanner s = new Scanner(System.in);
+		
+		System.out.println("Enter your name : ");
+		name = s.nextLine();
+		
+		System.out.println("Enter your Average : ");
+		avg = s.nextInt();
+		
+		if (avg > 80) {
+			grade = "Distinction";
+		} else if (avg > 70){
+			grade = "Credit";
+		} else if (avg > 60) {
+			grade = "Simple Pass";
+		} else {
+			grade = "Fail";
+		}
+		
+		System.out.println(
+				name +" " +grade
+				);
+
+	}
+
+}
