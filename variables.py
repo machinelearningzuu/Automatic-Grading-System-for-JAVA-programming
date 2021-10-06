@@ -15,5 +15,9 @@ line_categories = [
 
 data_dir = 'data/'
 
-max_ength = 420
+emb_dim = 200
+max_length = 200
 pad_token = '<pad>'
+
+embeddings = 'src/word2vec_embedding.model'
+scores_csv = 'scores.csv'
