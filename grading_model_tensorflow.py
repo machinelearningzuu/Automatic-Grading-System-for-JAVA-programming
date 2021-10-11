@@ -1,5 +1,6 @@
 import tensorflow as tf 
 from tensorflow.keras import backend as K 
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Input, Dense, Conv2D, MaxPooling2D, BatchNormalization, Dropout, ReLU, Flatten, Reshape, Lambda
 from tensorflow.keras.models import Sequential, Model
 
@@ -115,8 +116,7 @@ class SiameseNetwork(object):
                         )([fv1, fv2])
 
         similarity = Lambda(lambda x: K.squeeze(x, 1))(similarity)
-
-        similarity = ReLU()(similarity)
+        # similarity = Lambda(lambda x: tf.keras.activations.sigmoid(x))(similarity)
 
         self.model= Model(
                     [lecturer_embedding, student_embedding], 
@@ -126,8 +126,9 @@ class SiameseNetwork(object):
 
     def train(self):
         self.model.compile(
-                    loss='mse',
-                    optimizer='adam'
+                    loss=tf.keras.losses.Huber(),
+                    optimizer=Adam(0.00001), 
+                    metrics = ['mae']
                         )
 
         self.history = self.model.fit(
@@ -140,6 +141,11 @@ class SiameseNetwork(object):
         # self.save_model()
 
 
+    def predict(self):
+        return self.model.predict([self.Xlec, self.Xstu])
+
+
 model = SiameseNetwork()
 model.siamese()
 model.train()
+print(model.predict())
