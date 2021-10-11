@@ -42,37 +42,51 @@ class SiameseNetwork(object):
 
         return Xlec, Xstu, Yexact, Yfunc
 
+    def conv_block(self, out_channels, inputs, final_layer = False):
+        if not final_layer:
+            x = Conv2D(
+                    out_channels, 3,
+                    padding='same'
+                        )(inputs)
+            x = BatchNormalization()(x)
+            x = ReLU()(x)
+            x = Dropout(0.5)(x)
+            x = MaxPooling2D(
+                    (2,2),
+                    strides=2
+                        )(x)
+            return x
+
+        else:
+            x = Conv2D(
+                    out_channels, 3,
+                    padding='same'
+                        )(inputs)
+            x = ReLU()(x)                        
+            x = Dropout(0.5)(x)
+            x = MaxPooling2D(
+                    (2,2),
+                    strides=2
+                        )(x)
+            return x
+
+    def linear_block(self, inputs):
+        x = Flatten()(inputs)
+        x = Dense(512, activation='relu')(x)
+        x = Dense(64, activation='relu')(x)
+        return x
+
     def CNN(self):
-        inputs = Input(shape=(max_length,embedding_dim))
-        x = Bidirectional(
-                    GRU(
-                       size_lstm1,
-                       return_sequences=True,
-                       unroll=True
-                       ), name='bidirectional_lstm1')(inputs) # Bidirectional LSTM layer
-        x = Bidirectional(
-                    GRU(
-                       size_lstm2,
-                       unroll=True
-                       ), name='bidirectional_lstm2')(x) # Bidirectional LSTM layer
-                       
-        # x = Dense(dense1, activation='relu')(x)
-        x = Dense(dense1)(x) 
-        x = BatchNormalization()(x)
-        x = relu(x)
-        x = Dropout(keep_prob)(x)
+        inputs = Input(shape = self.input_shape)
+        conv1 = self.conv_block(16, inputs,False)
+        conv2 = self.conv_block(32, conv1)
+        conv3 = self.conv_block(64, conv2)
+        conv4 = self.conv_block(128, conv3)
+        conv5 =self.conv_block(64, conv4, True)
+        linear = self.linear_block(conv5)
 
-        # x = Dense(dense2, activation='relu')(x) 
-        x = Dense(dense2)(x)
-        x = BatchNormalization()(x)
-        x = relu(x)
-        x = Dropout(keep_prob)(x)
-
-        # x = Dense(dense3, activation='relu')(x) 
-        x = Dense(dense3, name='features')(x)
-        x = BatchNormalization()(x)
-        x = relu(x)
-        x = Dropout(keep_prob)(x)
+        model = Model(inputs, linear)
+        return model
     
     @staticmethod
     def cosine_similarity(vests):
