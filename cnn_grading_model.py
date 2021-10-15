@@ -19,6 +19,7 @@ class SiameseNetwork(object):
         self.input_shape = np.expand_dims(self.data.__getitem__(0)[0][:,:,0], axis=-1).shape
         
         Xlec, Xstu, Yexact, Yfunc = self.reform_data(X,Y)
+        print(Xlec[0])
         self.Xlec = Xlec
         self.Xstu = Xstu
         self.Yfunc = Yfunc

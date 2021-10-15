@@ -32,12 +32,3 @@ def ASTconversion(file_path):
     syntax_error = errors.error_msg if is_syntax_errors else None
     error_count = parser.getNumberOfSyntaxErrors()
     return tree.toStringTree(recog=parser), syntax_error, error_count
-
-
-# tree1 = ASTconversion('test_data/loop/for.java')
-# tree2 = ASTconversion('test_data/loop/while.java')
-
-# print('################################# FOR ########################################\n')
-# print(tree1[0])
-# print('\n################################# WHILE ######################################\n')
-# print(tree2[0])

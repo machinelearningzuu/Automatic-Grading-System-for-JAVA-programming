@@ -1,28 +1,42 @@
+import os
 import tensorflow as tf 
 from tensorflow.keras import backend as K 
+from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Input, Dense, Conv2D, MaxPooling2D, BatchNormalization, Dropout, ReLU, Flatten, Reshape, Lambda
-from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.activations import relu
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.layers import Input, Dense, Bidirectional, LSTM, BatchNormalization, Dropout, Reshape, Lambda, Embedding
 
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from word_embedding import CODE2TENSOR
+from resources.set import Experiments
 from variables import *
 
 class SiameseNetwork(object):
-    def __init__(self):
+    def __init__(self, toggle=-1):
         self.data = CODE2TENSOR()
-        X, Y, self.Errors = self.data.code_embedding()  
-        
-        self.input_shape = np.expand_dims(self.data.__getitem__(0)[0][:,:,0], axis=-1).shape
-        
+        self.toggle = toggle
+        # X, Y, self.Errors = self.data.code_embedding()
+        X, Y, self.Errors = self.data.X, self.data.Y, self.data.Errors
         Xlec, Xstu, Yexact, Yfunc = self.reform_data(X,Y)
+
         self.Xlec = Xlec
         self.Xstu = Xstu
-        self.Yfunc = Yfunc
-        self.Yexact = Yexact
+
+        # self.Yfunc = Yfunc
+        # self.Yexact = Yexact
+        if self.toggle == 1:
+            self.Y = Yexact
+            self.model_weights = EMsiamese_weights
+        elif self.toggle == 0:
+            self.Y = Yfunc
+            self.model_weights = FMsiamese_weights
+        else:
+            self.model_weights = EMsiamese_weights
 
     def normalize(self, score):
         return (score / 80.0)
@@ -34,45 +48,53 @@ class SiameseNetwork(object):
         Yexact = self.normalize(Yexact)
         Yfunc = self.normalize(Yfunc)
 
-        Xlec = X[:,:,:,0]
-        Xstu = X[:,:,:,1]
+        # Xlec = X[:,:,:,0]
+        # Xstu = X[:,:,:,1]
 
-        Xlec = np.expand_dims(Xlec, axis=-1)
-        Xstu = np.expand_dims(Xstu, axis=-1)
+        Xlec = np.array([x[0] for x in X])
+        Xstu = np.array([x[1] for x in X])
 
         return Xlec, Xstu, Yexact, Yfunc
 
-    def CNN(self):
-        inputs = Input(shape=(max_length,embedding_dim))
+    def RNN(self):
+        inputs = Input(shape=(max_length,), name='text_inputs')
+        x = Embedding(
+                    output_dim=emb_dim, 
+                    input_dim=self.data.vocab_size, 
+                    input_length=max_length, 
+                    name='embedding'
+                    )(inputs)
         x = Bidirectional(
-                    GRU(
-                       size_lstm1,
+                    LSTM(
+                       256,
                        return_sequences=True,
                        unroll=True
-                       ), name='bidirectional_lstm1')(inputs) # Bidirectional LSTM layer
+                       ), name='bidirectional_lstm1')(x) # Bidirectional LSTM layer
         x = Bidirectional(
-                    GRU(
-                       size_lstm2,
+                    LSTM(
+                       128,
                        unroll=True
                        ), name='bidirectional_lstm2')(x) # Bidirectional LSTM layer
                        
         # x = Dense(dense1, activation='relu')(x)
-        x = Dense(dense1)(x) 
+        x = Dense(256)(x) 
         x = BatchNormalization()(x)
         x = relu(x)
-        x = Dropout(keep_prob)(x)
+        x = Dropout(0.5)(x)
 
         # x = Dense(dense2, activation='relu')(x) 
-        x = Dense(dense2)(x)
+        x = Dense(128)(x)
         x = BatchNormalization()(x)
         x = relu(x)
-        x = Dropout(keep_prob)(x)
+        x = Dropout(0.5)(x)
 
         # x = Dense(dense3, activation='relu')(x) 
-        x = Dense(dense3, name='features')(x)
+        x = Dense(64)(x)
         x = BatchNormalization()(x)
-        x = relu(x)
-        x = Dropout(keep_prob)(x)
+        output = relu(x)
+
+        model = Model(inputs, output)
+        return model
     
     @staticmethod
     def cosine_similarity(vests):
@@ -87,11 +109,12 @@ class SiameseNetwork(object):
         return (shape1[0],1)
 
     def siamese(self):
-        lecturer_embedding = Input(shape = self.input_shape)
-        student_embedding = Input(shape = self.input_shape)
+        lecturer_embedding = Input(shape = (max_length,))
+        student_embedding = Input(shape = (max_length,))
 
-        fv1 = self.CNN()(lecturer_embedding)
-        fv2 = self.CNN()(student_embedding)
+        rnn = self.RNN()
+        fv1 = rnn(lecturer_embedding)
+        fv2 = rnn(student_embedding)
 
         fv1 = Reshape((1, -1))(fv1)
         fv2 = Reshape((1, -1))(fv2)
@@ -113,25 +136,68 @@ class SiameseNetwork(object):
     def train(self):
         self.model.compile(
                     loss=tf.keras.losses.Huber(),
-                    optimizer=Adam(0.00001), 
+                    optimizer=Adam(0.01), 
                     metrics = ['mae']
                         )
 
         self.history = self.model.fit(
                                 [self.Xlec, self.Xstu],
-                                self.Yfunc,
+                                self.Y,
                                 epochs = 10,
-                                batch_size = 6
+                                batch_size = 12
                                     )
-        # # self.plot_metrics()
-        # self.save_model()
 
+    def save_model(self): # Save trained model
+        self.model.save(self.model_weights)
 
-    def predict(self):
-        return self.model.predict([self.Xlec, self.Xstu])
+    def loaded_model(self, model_weights): # Load and compile pretrained model
+        # self.model = load_model(model_weights)
+        # self.model.compile(
+        #             loss=tf.keras.losses.Huber(),
+        #             optimizer=Adam(0.01), 
+        #             metrics = ['mae']
+        #                 )
+        self.model = Experiments()
 
+    def tokzenization(self, ast):
+        tokenizer = self.data.tokenizer_save_and_load()
 
-model = SiameseNetwork()
-model.siamese()
-model.train()
-print(model.predict())
+        ast_seq = tokenizer.texts_to_sequences([ast]) # tokenize train data
+        ast_pad = pad_sequences(
+                                ast_seq, 
+                                maxlen=max_length, 
+                                padding=padding, 
+                                truncating=trunc_type
+                                )
+        return ast_pad
+            
+    def generate_score(self, lecturer_ast, student_ast, toggle):
+        if toggle:
+            model_weights = EMsiamese_weights
+        else:
+            model_weights = FMsiamese_weights
+        self.loaded_model(model_weights)
+
+        lecturer_ast = self.tokzenization(lecturer_ast)
+        student_ast = self.tokzenization(student_ast)
+
+        p = self.model.predict([lecturer_ast, student_ast])
+        p = p.squeeze()
+        p *= 80.0
+        return int(p)
+
+    def generate_vector(self, ast):
+        self.loaded_model(EMsiamese_weights)
+        ast = self.tokzenization(ast)
+        return self.model.predict([ast])
+
+    def run(self):
+        if not os.path.exists(self.model_weights):
+            self.siamese()
+            self.train()
+            self.save_model()
+        else:
+            self.loaded_model(self.model_weights)
+
+# model = SiameseNetwork()
+# model.run()
