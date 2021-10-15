@@ -20,11 +20,12 @@ def extract_data():
     """
     codefile = request.files['lecturer']
     filename = secure_filename(codefile.filename) 
-    if filename.endswith('.jave'):
+    if filename.endswith('.java'):
         lecturer_codes = os.listdir(lecturer_dir)
         if len(lecturer_codes) > 0:
             code_idxs = [int(code.split('.')[0]) for code in lecturer_codes]
             max_idx = max(code_idxs)
+            print(max_idx)
             filename = '{}.{}'.format(max_idx+1, filename)
         else:
             filename = '1.{}'.format(filename)
@@ -59,8 +60,9 @@ def lecturer_code(lecturer_codes):
 
 @app.route("/generate_tree", methods=["POST"])
 def generate_tree():
-    if return_ast_details() is not None:
-        ast, syntax_error, error_count = return_ast_details()
+    ast_details = return_ast_details()
+    if ast_details is not None:
+        ast, syntax_error, error_count = ast_details
     else:
         response = {
             'status': 'Input Error',
@@ -111,7 +113,7 @@ def generate_vector():
     
     else:
         lecturer_ast = lecturer_code(lecturer_codes)
-        fv = model.get_vector(lecturer_ast)
+        fv = model.generate_vector(lecturer_ast)
         fv = fv.tolist() 
         response = {
             'status': 'Success',

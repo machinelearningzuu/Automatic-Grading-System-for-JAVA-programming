@@ -19,7 +19,7 @@ class Experiments(object):
         print('Model Loading !!!')
 
     def generate_vector(self, ast):
-        return np.random.randn(10,)
+        return np.random.uniform(size=10)
 
     def generate_score(self, lecturer_ast, student_ast, toggle): 
         if toggle:
