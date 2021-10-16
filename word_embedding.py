@@ -63,6 +63,7 @@ class CODE2TENSOR(object):
 
         X = np.array(X)
         Y = np.array(Y)
+        x = self.feature_vector_generation(X)
         self.create_wordcloud(Allasts)
         self.handle_data(Allasts)
 
@@ -214,6 +215,8 @@ class CODE2TENSOR(object):
         else:
             return emb_matrix
 
+    def feature_vector_generation(emb_matrix):
+        return emb_matrix.sum(axis=-1)
     # def generate_features(self, lecturer_code_or_ast, student_code_or_ast):
     #     lecturer_docs = self.feature_matrix_generation(lecturer_code_or_ast)
     #     student_docs = self.feature_matrix_generation(student_code_or_ast)
