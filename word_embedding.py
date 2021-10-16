@@ -153,66 +153,66 @@ class CODE2TENSOR(object):
         self.tokenizer = tokenizer
         self.vocab_size = len(tokenizer.word_index) + 1
 
-    # def padding(self, ast_tokens):
-    #     if len(ast_tokens) >= self.max_length:
-    #         pad_ast_tokens = ast_tokens[-self.max_length:]
-    #     else:
-    #         pad_ast_tokens = [self.pad_token]*(self.max_length-len(ast_tokens))+ ast_tokens
-    #     return pad_ast_tokens
+    def padding(self, ast_tokens):
+        if len(ast_tokens) >= self.max_length:
+            pad_ast_tokens = ast_tokens[-self.max_length:]
+        else:
+            pad_ast_tokens = [self.pad_token]*(self.max_length-len(ast_tokens))+ ast_tokens
+        return pad_ast_tokens
 
-    # def tokenization_padding(self):
-    #     all_ast_tokens = []
-    #     for ast in self.asts:
-    #         ast_tokens = [token.strip() for token in ast.split(" ")]
-    #         ast_tokens= self.padding(ast_tokens)
-    #         all_ast_tokens.append(ast_tokens)
-    #     return all_ast_tokens 
+    def tokenization_padding(self):
+        all_ast_tokens = []
+        for ast in self.asts:
+            ast_tokens = [token.strip() for token in ast.split(" ")]
+            ast_tokens= self.padding(ast_tokens)
+            all_ast_tokens.append(ast_tokens)
+        return all_ast_tokens 
  
-    # def wordEmbedding(self):
-    #     tokens = self.tokenization_padding()
-    #     self.model = Word2Vec(
-    #                 tokens, 
-    #                 size=emb_dim, 
-    #                 window=10,
-    #                 workers=4,
-    #                 min_count=1, 
-    #                 sg=1
-    #                 )
+    def wordEmbedding(self):
+        tokens = self.tokenization_padding()
+        self.model = Word2Vec(
+                    tokens, 
+                    size=emb_dim, 
+                    window=10,
+                    workers=4,
+                    min_count=1, 
+                    sg=1
+                    )
 
-    # def save_embedding_model(self):
-    #     self.model.save(embeddings)
+    def save_embedding_model(self):
+        self.model.save(embeddings)
 
-    # def load_embedding_model(self):
-    #     self.model = Word2Vec.load(embeddings)
+    def load_embedding_model(self):
+        self.model = Word2Vec.load(embeddings)
 
-    # def embedding_dict(self):
-    #     dict_ = {key:self.model.wv[key] for key in self.model.wv.vocab}
-    #     return dict_
+    def embedding_dict(self):
+        dict_ = {key:self.model.wv[key] for key in self.model.wv.vocab}
+        return dict_
 
-    # def process_single_ast(self, ast):
-    #     ast_tokens = [token.strip() for token in ast.split(" ")]
-    #     ast_tokens = self.padding(ast_tokens)
-    #     return ast_tokens
+    def process_single_ast(self, ast):
+        ast_tokens = [token.strip() for token in ast.split(" ")]
+        ast_tokens = self.padding(ast_tokens)
+        return ast_tokens
 
-    # def feature_matrix_generation(self, code_or_ast, ast=True):
+    def feature_matrix_generation(self, code_or_ast, ast=True):
 
-    #     if not ast: 
-    #         ast, syntax_error, error_count = ASTconversion(code_or_ast)
-    #     else:
-    #         ast = code_or_ast
-    #     ast_tokens = self.process_single_ast(ast)
+        if not ast: 
+            ast, syntax_error, error_count = ASTconversion(code_or_ast)
+        else:
+            ast = code_or_ast
+        ast_tokens = self.process_single_ast(ast)
 
-    #     emb_matrix = np.zeros((max_length, emb_dim))
-    #     for i, token in enumerate(ast_tokens):
-    #         if token not in self.model.wv.vocab:
-    #             zero_vector = np.zeros((emb_dim))
-    #             emb_matrix[i] = zero_vector
-    #         else:
-    #             emb_matrix[i] = self.model.wv[token]
-    #     if not ast: 
-    #         return emb_matrix, syntax_error, error_count
-    #     else:
-    #         return emb_matrix
+        emb_matrix = np.zeros((max_length, emb_dim))
+        for i, token in enumerate(ast_tokens):
+            if token not in self.model.wv.vocab:
+                zero_vector = np.zeros((emb_dim))
+                emb_matrix[i] = zero_vector
+            else:
+                emb_matrix[i] = self.model.wv[token]
+        if not ast: 
+            return emb_matrix, syntax_error, error_count
+        else:
+            return emb_matrix
 
     # def generate_features(self, lecturer_code_or_ast, student_code_or_ast):
     #     lecturer_docs = self.feature_matrix_generation(lecturer_code_or_ast)
