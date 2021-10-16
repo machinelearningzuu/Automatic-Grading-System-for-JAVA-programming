@@ -58,6 +58,35 @@ def lecturer_code(lecturer_codes):
     lecturer_ast = ASTconversion(file_dir)[0]
     return lecturer_ast
 
+def Grading(score):
+    """
+    Return the grade of the student.
+    """
+    score = score / 100.0
+
+    if score > 0.85:
+        return 'A+'
+    elif score > 0.75:
+        return 'A'
+    elif score > 0.7:
+        return 'A-'
+    elif score > 0.65:
+        return 'B+'
+    elif score > 0.60:
+        return 'B'
+    elif score > 0.55:
+        return 'B-'
+    elif score > 0.5:
+        return 'C+'
+    elif score > 0.45:
+        return 'C'
+    elif score > 0.4:
+        return 'C-'
+    elif score > 0.35:
+        return 'D'
+    else:
+        return 'F'
+
 @app.route("/generate_tree", methods=["POST"])
 def generate_tree():
     ast_details = return_ast_details()
@@ -114,7 +143,6 @@ def generate_vector():
     else:
         lecturer_ast = lecturer_code(lecturer_codes)
         fv = model.generate_vector(lecturer_ast)
-        fv = fv.tolist() 
         response = {
             'status': 'Success',
             'feature_vector': '{}'.format(fv)
@@ -138,13 +166,14 @@ def generate_score():
     if student_id in student_codes:
         student_code = os.path.join(student_dir, student_id)
         student_ast, syntax_error, _ =  ASTconversion(student_code)
-        content_score = model.generate_score(lecturer_ast, student_ast, toggle)
+        content_score = model.generate_score(lecturer_ast, student_ast, toggle, syntax_error=syntax_error)
         comile_score = 20 if not syntax_error else 0
         final_score = content_score + comile_score
-
+        grade = Grading(final_score)
         response = {
             'status': 'Success',
-            'score': '{}'.format(final_score),
+            'score': '{}'.format(str(final_score)),
+            'grade': '{}'.format(grade),
             'Syntax_errors' : 'True' if syntax_error else 'False'
                  }
         return Response(

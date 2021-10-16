@@ -4,7 +4,7 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.activations import relu
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import model_from_json
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import Input, Dense, Bidirectional, LSTM, BatchNormalization, Dropout, Reshape, Lambda, Embedding
 
@@ -18,25 +18,30 @@ from variables import *
 
 class SiameseNetwork(object):
     def __init__(self, toggle=-1):
-        self.data = CODE2TENSOR()
-        self.toggle = toggle
-        # X, Y, self.Errors = self.data.code_embedding()
-        X, Y, self.Errors = self.data.X, self.data.Y, self.data.Errors
-        Xlec, Xstu, Yexact, Yfunc = self.reform_data(X,Y)
+        if toggle != -1:
+            self.data = CODE2TENSOR()
+            self.toggle = toggle
+            # X, Y, self.Errors = self.data.code_embedding()
+            X, Y, self.Errors = self.data.X, self.data.Y, self.data.Errors
+            Xlec, Xstu, Yexact, Yfunc = self.reform_data(X,Y)
 
-        self.Xlec = Xlec
-        self.Xstu = Xstu
+            self.Xlec = Xlec
+            self.Xstu = Xstu
 
-        # self.Yfunc = Yfunc
-        # self.Yexact = Yexact
-        if self.toggle == 1:
-            self.Y = Yexact
-            self.model_weights = EMsiamese_weights
-        elif self.toggle == 0:
-            self.Y = Yfunc
-            self.model_weights = FMsiamese_weights
+            # self.Yfunc = Yfunc
+            # self.Yexact = Yexact
+            if self.toggle == 1:
+                self.Y = Yexact
+                self.model_weights = EMsiamese_weights
+                self.model_architecture = EMsiamese_architecture
+            elif self.toggle == 0:
+                self.Y = Yfunc
+                self.model_weights = FMsiamese_weights
+                self.model_architecture = FMsiamese_architecture
+
         else:
             self.model_weights = EMsiamese_weights
+            self.model_architecture = EMsiamese_architecture
 
     def normalize(self, score):
         return (score / 80.0)
@@ -148,16 +153,31 @@ class SiameseNetwork(object):
                                     )
 
     def save_model(self): # Save trained model
-        self.model.save(self.model_weights)
+        model_json = self.model.to_json()
+        with open(self.model_architecture, "w") as json_file:
+            json_file.write(model_json)
 
-    def loaded_model(self, model_weights): # Load and compile pretrained model
-        # self.model = load_model(model_weights)
-        # self.model.compile(
-        #             loss=tf.keras.losses.Huber(),
-        #             optimizer=Adam(0.01), 
-        #             metrics = ['mae']
-        #                 )
+        self.model.save(self.model_weights)
+        print("Model Saved !!!")
+
+    def loaded_model(self, model_weights, model_architecture): # Load and compile pretrained model
+        try:
+            json_file = open(model_architecture, 'r')
+            loaded_model_json = json_file.read()
+            json_file.close()
+
+            self.model = model_from_json(loaded_model_json)
+            self.model.load_weights(model_weights)
+
+            self.model.compile(
+                        loss=tf.keras.losses.Huber(),
+                        optimizer=Adam(0.01), 
+                        metrics = ['mae']
+                            )
+        except:
+            pass
         self.model = Experiments()
+        print('Model Loading !!!')
 
     def tokzenization(self, ast):
         tokenizer = self.data.tokenizer_save_and_load()
@@ -174,9 +194,11 @@ class SiameseNetwork(object):
     def generate_score(self, lecturer_ast, student_ast, toggle):
         if toggle:
             model_weights = EMsiamese_weights
+            model_architecture = EMsiamese_architecture
         else:
             model_weights = FMsiamese_weights
-        self.loaded_model(model_weights)
+            model_architecture = FMsiamese_architecture
+        self.loaded_model(model_weights, model_architecture)
 
         lecturer_ast = self.tokzenization(lecturer_ast)
         student_ast = self.tokzenization(student_ast)
@@ -187,7 +209,7 @@ class SiameseNetwork(object):
         return int(p)
 
     def generate_vector(self, ast):
-        self.loaded_model(EMsiamese_weights)
+        self.loaded_model(self.model_weights, self.model_architecture)
         ast = self.tokzenization(ast)
         return self.model.predict([ast])
 
@@ -197,7 +219,11 @@ class SiameseNetwork(object):
             self.train()
             self.save_model()
         else:
-            self.loaded_model(self.model_weights)
+            self.loaded_model(self.model_weights, self.model_architecture)
 
-# model = SiameseNetwork()
+# '''
+#  When Training Make sure to set toggle to 0/1.
+# '''
+# toggle = 1
+# model = SiameseNetwork(toggle)
 # model.run()

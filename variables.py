@@ -27,11 +27,14 @@ embeddings = 'src/word2vec_embedding.model'
 EMsiamese_weights = 'src/siamese_weights_exact_match.h5'
 FMsiamese_weights = 'src/siamese_weights_functional_match.h5'
 
+EMsiamese_architecture = 'src/siamese_weights_exact_match.json'
+FMsiamese_architecture = 'src/siamese_weights_functional_match.json'
+
 tokenizer_weights = 'src/tokenizer_weights.pickle'
 scores_csv = 'scores.csv'
 
-wordcloud_path = 'results/wordcloud.png'
-ast_length_path = 'results/ast_length.png'
+wordcloud_path = 'visualizations/wordcloud.png'
+ast_length_path = 'visualizations/ast_length.png'
 
 
 host = 'localhost'
