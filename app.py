@@ -25,7 +25,6 @@ def extract_data():
         if len(lecturer_codes) > 0:
             code_idxs = [int(code.split('.')[0]) for code in lecturer_codes]
             max_idx = max(code_idxs)
-            print(max_idx)
             filename = '{}.{}'.format(max_idx+1, filename)
         else:
             filename = '1.{}'.format(filename)
